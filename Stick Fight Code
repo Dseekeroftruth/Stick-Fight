@@ -1,0 +1,154 @@
+import curses
+import time
+import subprocess
+import sys
+
+# Check if pygame is installed, and install it if not
+try:
+    import pygame
+except ImportError:
+    print("pygame not found. Installing...")
+    subprocess.check_call([sys.executable, "-m", "pip", "install", "pygame"])
+    import pygame
+
+# Initialize pygame mixer
+pygame.mixer.init()
+pygame.mixer.music.load('/Users/Username/Documents/Mortal Kombat Theme Song Original.mp3')  # Path to your music file
+pygame.mixer.music.play(-1)  # Loop the music indefinitely
+
+# Stick figure frames for different actions
+stick_figure_stance = [
+    " O ",
+    "/|\\",
+    "/ \\"
+]
+
+stick_figure_punch = [
+    " O ",
+    " |\\",
+    "/ \\"
+]
+
+stick_figure_kick = [
+    " O ",
+    "/|\\",
+    " |\\"
+]
+
+stick_figure_flying_kick = [
+    " O ",
+    "/|\\",
+    " | "
+]
+
+stick_figure_standing = [
+    " O ",
+    "/|\\",
+    "/ \\"
+]
+
+stick_figure_collapsed = [
+    " O ",
+    "/|_",
+    "   "
+]
+
+stick_figure_jump_kick = [
+    " O ",
+    "/|\\",
+    " | "
+]
+
+# Function to draw stick figure
+def draw_stick_figure(win, y, x, figure):
+    for i, line in enumerate(figure):
+        win.addstr(y + i, x, line)
+
+# Combined animation function
+def animate_fight(stdscr):
+    curses.curs_set(0)  # Hide cursor
+    stdscr.nodelay(1)  # Non-blocking input
+    stdscr.timeout(50)  # Refresh every 50 milliseconds
+
+    height, width = stdscr.getmaxyx()
+    x1, y1 = width // 4, height // 2 - 1
+    x2, y2 = 3 * width // 4 - 2, height // 2 - 1
+    x3, y3 = 1, height // 2 - 1
+
+    direction = 1
+    collapsed = False
+
+    while True:
+        # Initial fight animation
+        frame = 0
+        while frame < 100:  # Extended initial animation
+            stdscr.clear()
+
+            if frame % 10 < 5:
+                figure1 = stick_figure_stance
+                figure2 = stick_figure_stance if frame % 20 < 10 else stick_figure_punch
+            elif frame % 10 < 7:
+                figure1 = stick_figure_punch
+                figure2 = stick_figure_kick
+            else:
+                figure1 = stick_figure_flying_kick
+                figure2 = stick_figure_flying_kick
+
+            draw_stick_figure(stdscr, y1, x1, figure1)
+            draw_stick_figure(stdscr, y2, x2, figure2)
+            stdscr.refresh()
+
+            x1 += direction
+            x2 -= direction
+
+            if x1 >= width // 2 - 3 or x1 <= 1:
+                direction = -direction
+
+            frame += 1
+            time.sleep(0.05)
+
+            key = stdscr.getch()
+            if key == ord('q'):
+                return
+
+        # Jump kick animation
+        x3 = 1  # Reset jumping figure position
+        collapsed = False
+        while x3 < width:
+            stdscr.clear()
+
+            draw_stick_figure(stdscr, y1, x1, stick_figure_standing)
+            draw_stick_figure(stdscr, y3, x3, stick_figure_jump_kick)
+
+            stdscr.refresh()
+
+            x3 += 4  # Move faster across the screen
+
+            if x3 > x1 and not collapsed:
+                collapsed = True
+
+            time.sleep(0.05)
+
+            key = stdscr.getch()
+            if key == ord('q'):
+                return
+
+        # Collapse animation
+        frame = 0
+        while frame < 50:
+            stdscr.clear()
+
+            draw_stick_figure(stdscr, y1, x1, stick_figure_collapsed)
+            stdscr.refresh()
+
+            frame += 1
+            time.sleep(0.1)
+
+            key = stdscr.getch()
+            if key == ord('q'):
+                break
+
+curses.wrapper(animate_fight)
+
+# Stop the music when the animation ends
+pygame.mixer.music.stop()
